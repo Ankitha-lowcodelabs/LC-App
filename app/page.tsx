@@ -58,7 +58,7 @@ export default function FormBuilder() {
         </CardContent>
       </Card>
 
-      <FormPopup open={isFormOpen} onClose={handleCloseForm} />
+      <FormPopup app={null} open={isFormOpen} onClose={handleCloseForm} />
     </div>
   )
 }

@@ -20,22 +20,42 @@ import {
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 
+interface Record {
+  id: number
+  name: string
+  type: string
+  length: string
+}
+
+interface AppData {
+  appName: string
+  appCode: string
+  appType: string
+  approvalFlow: string
+  exportOptions: string[]
+  expose: string[]
+  appdescription: string
+  records: Record[]
+}
 interface FormPopupProps {
   open: boolean
   onClose: () => void
+  app: AppData | null
 }
 
-export default function FormPopup({ open, onClose }: FormPopupProps) {
+export default function FormPopup({ open, onClose, app }: FormPopupProps) {
   const router = useRouter()
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<AppData>(app || {
     appName: '',
     appCode: '',
     appType: '',
     approvalFlow: '',
-    exportOptions: [] as string[],
-    expose: [] as string[],
+    exportOptions: [],
+    expose: [],
     appdescription: '',
+    records: []
   })
+
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = event.target
@@ -50,17 +70,28 @@ export default function FormPopup({ open, onClose }: FormPopupProps) {
   }
 
   const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault()
-    const existingApps = JSON.parse(localStorage.getItem('existingApps') || '[]')
-    const newApp = {
-      ...formData,
-      records: [] // This will be populated in the RecordsTable component
+    event.preventDefault();
+    
+    const existingApps = JSON.parse(localStorage.getItem('existingApps') || '[]');
+    
+    if (app) {
+      // If editing an existing app, update it in the list
+      const updatedApps = existingApps.map((existingApp: AppData) =>
+        existingApp.appCode === app.appCode ? { ...formData, records: existingApp.records } : existingApp
+      );
+      localStorage.setItem('existingApps', JSON.stringify(updatedApps));
+      localStorage.setItem('currentApp', JSON.stringify(formData));
+    } else {
+      // If creating a new app, add it to the list
+      const newApp = { ...formData, records: [] }; // This will be populated later in RecordsTable component
+      existingApps.push(newApp);
+      localStorage.setItem('existingApps', JSON.stringify(existingApps));
+      localStorage.setItem('currentApp', JSON.stringify(newApp));
     }
-    existingApps.push(newApp)
-    localStorage.setItem('existingApps', JSON.stringify(existingApps))
-    localStorage.setItem('currentApp', JSON.stringify(newApp))
-    router.push('/records')
+  
+    router.push('/records');
   }
+  
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -181,7 +212,7 @@ export default function FormPopup({ open, onClose }: FormPopupProps) {
         <DialogActions>
           <Button onClick={onClose}>Cancel</Button>
           <Button type="submit" variant="contained" color="primary">
-            Let's create app
+            { formData.appCode ? "Edit App": "Let's create app"}
           </Button>
         </DialogActions>
       </form>

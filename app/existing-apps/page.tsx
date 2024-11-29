@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+// import { useRouter } from 'next/navigation'
 import {
   Card,
   CardContent,
@@ -23,6 +23,7 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
+import FormPopup from '@/components/FormPopup'
 
 interface Record {
   id: number
@@ -44,7 +45,8 @@ interface AppData {
 
 export default function ExistingApps() {
   const [apps, setApps] = useState<AppData[]>([])
-  const router = useRouter()
+  const [selectedApp, setSelectedApp] = useState<AppData | null>(null)
+  const [openPopup, setOpenPopup] = useState(false)
 
   useEffect(() => {
     const savedApps = localStorage.getItem('existingApps')
@@ -54,10 +56,15 @@ export default function ExistingApps() {
   }, [])
 
   const handleEdit = (appCode: string) => {
-    // For now, we'll just log the action. In a real app, you'd implement the edit functionality.
-    console.log(`Editing app with code: ${appCode}`)
-    // You could navigate to an edit page or open a modal here
-    // router.push(`/edit-app/${appCode}`)
+    const appToEdit = apps.find(app => app.appCode === appCode)
+    if (appToEdit) {
+      setSelectedApp(appToEdit)
+      setOpenPopup(true)
+    }
+  }
+  const handleClosePopup = () => {
+    setOpenPopup(false)
+    setSelectedApp(null)
   }
 
   const handleDelete = (appCode: string) => {
@@ -151,6 +158,13 @@ export default function ExistingApps() {
           </Grid>
         ))}
       </Grid>
+      {openPopup && (
+        <FormPopup
+          open={openPopup}
+          onClose={handleClosePopup}
+          app={selectedApp}
+        />
+      )}
     </div>
   )
 }

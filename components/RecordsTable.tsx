@@ -26,6 +26,16 @@ interface Record {
   type: string
   length: string
 }
+interface AppData {
+  appName: string
+  appCode: string
+  appType: string
+  approvalFlow: string
+  exportOptions: string[]
+  expose: string[]
+  appdescription: string
+  records: Record[]
+}
 
 export default function RecordsTable() {
   const [records, setRecords] = useState<Record[]>([
@@ -63,7 +73,7 @@ export default function RecordsTable() {
     currentApp.records = records
     
     const existingApps = JSON.parse(localStorage.getItem('existingApps') || '[]')
-    const updatedApps = existingApps.map((app: any) => 
+    const updatedApps = existingApps.map((app: AppData) => 
       app.appCode === currentApp.appCode ? currentApp : app
     )
     

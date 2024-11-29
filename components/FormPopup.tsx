@@ -96,19 +96,23 @@ export default function FormPopup({ open, onClose, app }: FormPopupProps) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        Create New App
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          sx={{
-            position: 'absolute',
-            right: 8,
-            top: 8,
-            color: (theme) => theme.palette.grey[500],
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
+        <div style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 1 }}>
+          <header className="sticky-header">
+            { formData.appCode ? "Edit App" : "Create App" }
+          </header>
+          <IconButton
+            aria-label="close"
+            onClick={onClose}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8,
+              color: (theme) => theme.palette.grey[500],
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </div>
       </DialogTitle>
       <form onSubmit={handleSubmit}>
         <DialogContent>
@@ -197,7 +201,14 @@ export default function FormPopup({ open, onClose, app }: FormPopupProps) {
               />
             </FormGroup>
           </FormControl>
-
+          <FormLabel component="legend">Upload Document</FormLabel>
+        <TextField
+          type="file" 
+          id="document" 
+          name="document" 
+          onChange={handleChange}
+          required
+        />
           <TextField
             fullWidth
             margin="normal"

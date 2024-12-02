@@ -14,18 +14,28 @@ import {
   Select,
   MenuItem,
   IconButton,
+  Typography,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import SaveIcon from '@mui/icons-material/Save'
 import { useRouter } from 'next/navigation'
+import ListSelectionModal from './ListSelectionModal'
+import NewListModal from './NewListModal'
+
+interface List {
+  name: string
+  items: string[]
+}
 
 interface Record {
   id: number
   name: string
   type: string
   length: string
+  listItems?: string[] // Add this for list type records
 }
+
 interface AppData {
   appName: string
   appCode: string
@@ -42,12 +52,23 @@ export default function RecordsTable() {
     { id: 1, name: 'EID', type: 'string', length: '20' },
     { id: 2, name: 'Name', type: 'string', length: '50' },
   ])
+  const [openListModal, setOpenListModal] = useState(false)
+  const [openNewListModal, setOpenNewListModal] = useState(false)
+  const [selectedRecordId, setSelectedRecordId] = useState<number | null>(null)
+  const [savedLists, setSavedLists] = useState<List[]>([])
   const router = useRouter()
 
   useEffect(() => {
+    // Load saved records
     const savedRecords = localStorage.getItem('currentAppRecords')
     if (savedRecords) {
       setRecords(JSON.parse(savedRecords))
+    }
+
+    // Load saved lists
+    const savedListsData = localStorage.getItem('savedLists')
+    if (savedListsData) {
+      setSavedLists(JSON.parse(savedListsData))
     }
   }, [])
 
@@ -84,6 +105,35 @@ export default function RecordsTable() {
     router.push('/existing-apps')
   }
 
+  const handleTypeChange = (id: number, value: string) => {
+    if (value === 'lists') {
+      setSelectedRecordId(id)
+      setOpenListModal(true)
+    } else {
+      updateRecord(id, 'type', value)
+    }
+  }
+
+  const handleListSelect = (listName: string, items: string[]) => {
+    if (selectedRecordId !== null) {
+      setRecords(records.map(record => 
+        record.id === selectedRecordId 
+          ? { ...record, type: `lists:${listName}`, listItems: items }
+          : record
+      ))
+    }
+    setOpenListModal(false)
+  }
+
+  const handleNewListSave = (listName: string, items: string[]) => {
+    const newList = { name: listName, items }
+    const updatedLists = [...savedLists, newList]
+    setSavedLists(updatedLists)
+    localStorage.setItem('savedLists', JSON.stringify(updatedLists))
+    setOpenNewListModal(false)
+    setOpenListModal(true)
+  }
+
   return (
     <div className="p-4">
       <TableContainer component={Paper}>
@@ -108,22 +158,30 @@ export default function RecordsTable() {
                 </TableCell>
                 <TableCell>
                   <Select
-                    value={record.type}
-                    onChange={(e) => updateRecord(record.id, 'type', e.target.value as string)}
+                    value={record.type.startsWith('lists:') ? 'lists' : record.type}
+                    onChange={(e) => handleTypeChange(record.id, e.target.value as string)}
                   >
                     <MenuItem value="string">String</MenuItem>
                     <MenuItem value="number">Number</MenuItem>
                     <MenuItem value="boolean">Boolean</MenuItem>
-                    <MenuItem value="date">Date</MenuItem>
+                    <MenuItem value="date">Date&Time</MenuItem>
+                    <MenuItem value="lists">Lists</MenuItem>
                   </Select>
                 </TableCell>
                 <TableCell>
-                  <TextField
-                    value={record.length}
-                    onChange={(e) => updateRecord(record.id, 'length', e.target.value)}
-                    placeholder="Enter length"
-                    type="number"
-                  />
+                  {record.type !== 'date' && !record.type.startsWith('lists:') && (
+                    <TextField
+                      value={record.length}
+                      onChange={(e) => updateRecord(record.id, 'length', e.target.value)}
+                      placeholder="Enter length"
+                      type="number"
+                    />
+                  )}
+                  {record.type.startsWith('lists:') && (
+                    <Typography>
+                      {record.type.split(':')[1]} ({record.listItems?.length} items)
+                    </Typography>
+                  )}
                 </TableCell>
                 <TableCell>
                   <IconButton onClick={() => deleteRecord(record.id)}>
@@ -152,6 +210,25 @@ export default function RecordsTable() {
           Save Records
         </Button>
       </div>
+      <ListSelectionModal
+        open={openListModal}
+        onClose={() => setOpenListModal(false)}
+        onSelect={handleListSelect}
+        onNewList={() => {
+          setOpenListModal(false)
+          setOpenNewListModal(true)
+        }}
+        savedLists={savedLists}
+        onDeleteList={(listName) => {
+          setSavedLists(savedLists.filter(list => list.name !== listName));
+          localStorage.setItem('savedLists', JSON.stringify(savedLists.filter(list => list.name !== listName)));
+        }}
+      />
+      <NewListModal
+        open={openNewListModal}
+        onClose={() => setOpenNewListModal(false)}
+        onSave={handleNewListSave}
+      />
     </div>
   )
 }

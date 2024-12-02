@@ -39,6 +39,7 @@ export function AppDetailsDialog({ app, open, onOpenChange }: AppDetailsDialogPr
             <h4 className="font-semibold mb-2">Description</h4>
             <p className="text-muted-foreground">{app.appdescription}</p>
           </div>
+          <hr className="border-t border-gray-400 my-4" />
           <div>
             <h4 className="font-semibold mb-4">Records</h4>
             <Table>

@@ -36,6 +36,7 @@ interface AppData {
   expose: string[]
   appdescription: string
   records: Record[]
+  logo?: string
 }
 interface FormPopupProps {
   open: boolean
@@ -53,7 +54,8 @@ export default function FormPopup({ open, onClose, app }: FormPopupProps) {
     exportOptions: [],
     expose: [],
     appdescription: '',
-    records: []
+    records: [],
+    logo: ''
   })
 
 
@@ -98,7 +100,7 @@ export default function FormPopup({ open, onClose, app }: FormPopupProps) {
       <DialogTitle>
         <div style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 1 }}>
           <header className="sticky-header">
-            { formData.appCode ? "Edit App" : "Create App" }
+            { formData.appCode ? "Edit App" : "Let's Create App" }
           </header>
           <IconButton
             aria-label="close"
@@ -201,14 +203,14 @@ export default function FormPopup({ open, onClose, app }: FormPopupProps) {
               />
             </FormGroup>
           </FormControl>
-          <FormLabel component="legend">Upload Document</FormLabel>
-        <TextField
-          type="file" 
-          id="document" 
-          name="document" 
-          onChange={handleChange}
-          required
-        />
+          <FormLabel component="legend">Upload Logo</FormLabel>
+          <TextField
+            type="file" 
+            id="logo"
+            name="logo"
+            onChange={handleChange}
+            required
+          />
           <TextField
             fullWidth
             margin="normal"

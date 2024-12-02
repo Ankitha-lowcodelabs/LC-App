@@ -223,7 +223,7 @@ export default function FormPopup({ open, onClose, app }: FormPopupProps) {
         <DialogActions>
           <Button onClick={onClose}>Cancel</Button>
           <Button type="submit" variant="contained" color="primary">
-            { formData.appCode ? "Edit App": "Let's create app"}
+            { formData.appCode ? "Edit App" : "Let's Create App" }
           </Button>
         </DialogActions>
       </form>

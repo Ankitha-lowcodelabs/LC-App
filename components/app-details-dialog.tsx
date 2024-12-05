@@ -25,7 +25,7 @@ export function AppDetailsDialog({ app, open, onOpenChange }: AppDetailsDialogPr
           <DialogTitle className="flex items-center gap-4">
             <div className="w-12 h-12 relative">
               <Image
-                src={app.logo || "/placeholder.svg?height=48&width=48"}
+                src={app.logo || "/.svg?height=48&width=48"}
                 alt={app.appName}
                 fill
                 className="rounded-lg object-cover"

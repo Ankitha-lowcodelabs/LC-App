@@ -21,7 +21,7 @@ export function AppCard({ app, onClick }: AppCardProps) {
           </div>
           <div className="w-16 h-16 relative">
             <Image
-              src={"/placeholder.svg?height=64&width=64"}
+              src={"/.svg?height=64&width=64"}
               alt={app.appName}
               fill
               className="rounded-lg object-cover"

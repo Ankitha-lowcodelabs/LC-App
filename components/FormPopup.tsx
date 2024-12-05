@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
+
 import {
   Dialog,
   DialogTitle,
@@ -100,7 +101,7 @@ export default function FormPopup({ open, onClose, app }: FormPopupProps) {
       <DialogTitle>
         <div style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 1 }}>
           <header className="sticky-header">
-            { formData.appCode ? "Edit App" : "Let's Create App" }
+            { formData.appCode ? "Edit App" : " Create App" }
           </header>
           <IconButton
             aria-label="close"
@@ -209,7 +210,7 @@ export default function FormPopup({ open, onClose, app }: FormPopupProps) {
             id="logo"
             name="logo"
             onChange={handleChange}
-            required
+           
           />
           <TextField
             fullWidth
@@ -225,11 +226,10 @@ export default function FormPopup({ open, onClose, app }: FormPopupProps) {
         <DialogActions>
           <Button onClick={onClose}>Cancel</Button>
           <Button type="submit" variant="contained" color="primary">
-            { formData.appCode ? "Edit App" : "Let's Create App" }
+            { app ? "Edit App" : "Let's Create App" }
           </Button>
         </DialogActions>
       </form>
     </Dialog>
   )
 }
-

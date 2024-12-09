@@ -22,6 +22,7 @@ import SaveIcon from '@mui/icons-material/Save'
 import { useRouter } from 'next/navigation'
 import ListSelectionModal from './ListSelectionModal'
 import NewListModal from './NewListModal'
+import { createClient } from '@supabase/supabase-js'
 
 interface List {
   name: string
@@ -45,6 +46,26 @@ interface AppData {
   expose: string[]
   appdescription: string
   records: Record[]
+}
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
+const mapFieldTypeToSQL = (type: string, length: string) => {
+  switch (type) {
+    case 'string':
+      return `VARCHAR(${length || '255'})`;
+    case 'number':
+      return 'INTEGER';
+    case 'boolean':
+      return 'BOOLEAN';
+    case 'date':
+      return 'TIMESTAMP';
+    default:
+      return 'TEXT'; // Fallback type
+  }
 }
 
 export default function RecordsTable() {
@@ -89,7 +110,7 @@ export default function RecordsTable() {
     setRecords(records.filter((record) => record.id !== id))
   }
 
-  const saveRecords = () => {
+  const saveRecords = async () => {
     const currentApp = JSON.parse(localStorage.getItem('currentApp') || '{}')
     currentApp.records = records
     
@@ -101,8 +122,73 @@ export default function RecordsTable() {
     localStorage.setItem('existingApps', JSON.stringify(updatedApps))
     localStorage.removeItem('currentApp')
     localStorage.removeItem('currentAppRecords')
-    
+
+    // Retrieve the app ID and other necessary data from the apps table
+    const { data: appData, error: appError } = await supabase
+      .from('apps')
+      .select('id, app_name, app_code') // Fetch additional fields as needed
+      .eq('app_code', currentApp.appCode)
+      .single()
+      
+    console.log('appData', appData)
+    if (appError) {
+      console.error('Error fetching app data:', appError)
+      return
+    }
+
+    const appId = appData.id; // Get the app ID
+    const appName = appData.app_name; // Get the app name
+    // const appType = appData.app_type; // Get the app type
+
+    // Insert records into app_fields table
+    for (const record of records) {
+      const { error } = await supabase
+        .from('app_fields')
+        .insert({
+          app_id: appId, // Use the retrieved app ID
+          field_name: record.name,
+          field_type: record.type,
+          field_length: record.length,
+          is_required: true // Assuming all fields are required
+        })
+
+      if (error) {
+        console.error('Error inserting record into app_fields:', error)
+        return
+      }
+    }
+
+    // Create a new table in Supabase
+    await createDynamicTable(currentApp.appCode, records, appName)
+
     router.push('/existing-apps')
+  }
+
+  const createDynamicTable = async (appCode: string, fields: Record[], appName: string, appType: string) => {
+    let createTableSQL = `
+      CREATE TABLE IF NOT EXISTS app_${appCode} (
+        id SERIAL PRIMARY KEY,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        app_name VARCHAR(255) DEFAULT '${appName}',  -- Add app name
+        app_type VARCHAR(255) DEFAULT '${appType}',  -- Add app type
+    `;
+
+    fields.forEach(field => {
+      createTableSQL += `${field.name} ${mapFieldTypeToSQL(field.type, field.length)},`;
+    });
+
+    createTableSQL = createTableSQL.slice(0, -1) + ');'; // Remove the last comma and close the statement
+
+    console.log('Executing SQL:', createTableSQL); // Log the SQL command for debugging
+
+    const { error } = await supabase.rpc('execute_sql', { sql: createTableSQL });
+    if (error) {
+      console.error('Error creating dynamic table:', error);
+      throw error; // Throw error to stop execution if table creation fails
+    } else {
+      console.log(`Table app_${appCode} created successfully.`); // Log success message
+    }
   }
 
   const handleTypeChange = (id: number, value: string) => {

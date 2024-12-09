@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@supabase/supabase-js'
 
 import {
   Dialog,
@@ -45,6 +46,11 @@ interface FormPopupProps {
   app: AppData | null
 }
 
+// Initialize Supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
 export default function FormPopup({ open, onClose, app }: FormPopupProps) {
   const router = useRouter()
   const [formData, setFormData] = useState<AppData>(app || {
@@ -72,7 +78,7 @@ export default function FormPopup({ open, onClose, app }: FormPopupProps) {
     }
   }
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     
     const existingApps = JSON.parse(localStorage.getItem('existingApps') || '[]');
@@ -85,7 +91,22 @@ export default function FormPopup({ open, onClose, app }: FormPopupProps) {
       localStorage.setItem('existingApps', JSON.stringify(updatedApps));
       localStorage.setItem('currentApp', JSON.stringify(formData));
     } else {
-      // If creating a new app, add it to the list
+      // If creating a new app, add it to the Supabase table
+      const { data, error } = await supabase
+        .from('apps')
+        .insert([{ 
+          app_name: formData.appName,
+          app_code: formData.appCode,
+          app_description: formData.appdescription,
+          app_logo_url: formData.logo // Handle file upload separately if needed
+        }]);
+
+      if (error) {
+        console.error('Error inserting data:', error);
+        return; // Handle error appropriately
+      }
+
+      // Update local storage after successful insertion
       const newApp = { ...formData, records: [] }; // This will be populated later in RecordsTable component
       existingApps.push(newApp);
       localStorage.setItem('existingApps', JSON.stringify(existingApps));
@@ -225,7 +246,7 @@ export default function FormPopup({ open, onClose, app }: FormPopupProps) {
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="contained" color="primary">
+          <Button type="submit" variant="contained" color="primary" onClick={handleSubmit}>
             { app ? "Edit App" : "Let's Create App" }
           </Button>
         </DialogActions>

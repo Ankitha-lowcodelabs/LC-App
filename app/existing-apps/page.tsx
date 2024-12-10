@@ -68,9 +68,11 @@ export default function ExistingApps() {
   }
 
   const handleDelete = (appCode: string) => {
-    const updatedApps = apps.filter(app => app.appCode !== appCode)
-    setApps(updatedApps)
-    localStorage.setItem('existingApps', JSON.stringify(updatedApps))
+    if (window.confirm("Are you sure you want to delete this app?")) {
+      const updatedApps = apps.filter(app => app.appCode !== appCode)
+      setApps(updatedApps)
+      localStorage.setItem('existingApps', JSON.stringify(updatedApps))
+    }
   }
 
   return (

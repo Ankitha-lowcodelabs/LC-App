@@ -50,7 +50,7 @@ interface AppData {
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY!
 )
 
 const mapFieldTypeToSQL = (type: string, length: string) => {
@@ -129,7 +129,7 @@ export default function RecordsTable() {
       .select('id, app_name, app_code') // Fetch additional fields as needed
       .eq('app_code', currentApp.appCode)
       .single()
-      
+
     console.log('appData', appData)
     if (appError) {
       console.error('Error fetching app data:', appError)
@@ -137,7 +137,7 @@ export default function RecordsTable() {
     }
 
     const appId = appData.id; // Get the app ID
-    const appName = appData.app_name; // Get the app name
+    // const appName = appData.app_name; // Get the app name
     // const appType = appData.app_type; // Get the app type
 
     // Insert records into app_fields table
@@ -159,35 +159,29 @@ export default function RecordsTable() {
     }
 
     // Create a new table in Supabase
-    await createDynamicTable(currentApp.appCode, records, appName)
+    await createDynamicTable(currentApp.appCode, records)
 
     router.push('/existing-apps')
   }
 
-  const createDynamicTable = async (appCode: string, fields: Record[], appName: string, appType: string) => {
-    let createTableSQL = `
-      CREATE TABLE IF NOT EXISTS app_${appCode} (
-        id SERIAL PRIMARY KEY,
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW(),
-        app_name VARCHAR(255) DEFAULT '${appName}',  -- Add app name
-        app_type VARCHAR(255) DEFAULT '${appType}',  -- Add app type
-    `;
+  const createDynamicTable = async (appCode: string, fields: Record[]) => {
+    try {
+      // Construct the SQL command to create the table
+      const createTableSQL = `CREATE TABLE app_${appCode} (${fields.map(field => `"${field.name}" ${mapFieldTypeToSQL(field.type, field.length)}`).join(', ')});`;
 
-    fields.forEach(field => {
-      createTableSQL += `${field.name} ${mapFieldTypeToSQL(field.type, field.length)},`;
-    });
+      // Log the SQL command for debugging
+      console.log('SQL Command:', createTableSQL);
 
-    createTableSQL = createTableSQL.slice(0, -1) + ');'; // Remove the last comma and close the statement
+      // Execute the SQL command
+      const { data, error } = await supabase.rpc('execute_sql', { sql: createTableSQL });
 
-    console.log('Executing SQL:', createTableSQL); // Log the SQL command for debugging
-
-    const { error } = await supabase.rpc('execute_sql', { sql: createTableSQL });
-    if (error) {
+      if (error) {
+        console.error('Error executing SQL:', error);
+      } else {
+        console.log('Table created successfully:', data);
+      }
+    } catch (error) {
       console.error('Error creating dynamic table:', error);
-      throw error; // Throw error to stop execution if table creation fails
-    } else {
-      console.log(`Table app_${appCode} created successfully.`); // Log success message
     }
   }
 

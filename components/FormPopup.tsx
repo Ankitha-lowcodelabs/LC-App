@@ -48,8 +48,48 @@ interface FormPopupProps {
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+const supabaseServiceRoleKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY || ''
+const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
+
+// Add this function to map field types to SQL types
+const mapFieldTypeToSQL = (type: string, length: string) => {
+    switch (type) {
+        case 'string':
+            return `VARCHAR(${length})`;
+        case 'number':
+            return 'INTEGER';
+        case 'boolean':
+            return 'BOOLEAN';
+        // Add more mappings as needed
+        default:
+            return 'TEXT'; // Fallback type
+    }
+}
+
+// Add this function to insert data into the dynamic table
+const insertDataIntoTable = async (appCode: string, records: Record[]) => {
+    try {
+        // Construct the SQL command to insert records into the dynamic table
+        const insertSQL = `
+            INSERT INTO app_${appCode} (${records.map(field => `"${field.name}"`).join(', ')})
+            VALUES ${records.map(record => `(${records.map(field => `'${record[field.name as keyof Record]}'`).join(', ')})`).join(', ')}
+        `;
+
+        // Log the SQL command for debugging
+        console.log('Insert SQL Command:', insertSQL);
+
+        // Execute the SQL command
+        const { data, error } = await supabase.rpc('execute_sql', { sql: insertSQL });
+
+        if (error) {
+            console.error('Error executing SQL:', error);
+        } else {
+            console.log('Data inserted successfully:', data);
+        }
+    } catch (error) {
+        console.error('Error inserting data:', error);
+    }
+}
 
 export default function FormPopup({ open, onClose, app }: FormPopupProps) {
   const router = useRouter()
@@ -92,7 +132,7 @@ export default function FormPopup({ open, onClose, app }: FormPopupProps) {
       localStorage.setItem('currentApp', JSON.stringify(formData));
     } else {
       // If creating a new app, add it to the Supabase table
-      const { data, error } = await supabase
+      const { data , error } = await supabase
         .from('apps')
         .insert([{ 
           app_name: formData.appName,
@@ -106,6 +146,12 @@ export default function FormPopup({ open, onClose, app }: FormPopupProps) {
         return; // Handle error appropriately
       }
 
+      // Create the dynamic table after successful insertion
+      await createDynamicTable(formData.appCode, formData.records);
+
+      // Insert data into the dynamic table
+      await insertDataIntoTable(formData.appCode, formData.records);
+
       // Update local storage after successful insertion
       const newApp = { ...formData, records: [] }; // This will be populated later in RecordsTable component
       existingApps.push(newApp);
@@ -115,8 +161,33 @@ export default function FormPopup({ open, onClose, app }: FormPopupProps) {
   
     router.push('/records');
   }
-  
 
+  const createDynamicTable = async (appCode: string, fields: Record[]) => {
+    try {
+        // Construct the SQL command to create the table with primary and foreign keys
+        const createTableSQL = `
+            CREATE TABLE app_${appCode} (
+                id SERIAL PRIMARY KEY,
+                ${fields.map(field => `"${field.name}" ${mapFieldTypeToSQL(field.type, field.length)}`).join(', ')}
+            );
+        `;
+
+        // Log the SQL command for debugging
+        console.log('SQL Command:', createTableSQL);
+
+        // Execute the SQL command
+        const { data, error } = await supabase.rpc('execute_sql', { sql: createTableSQL });
+
+        if (error) {
+            console.error('Error executing SQL:', error);
+        } else {
+            console.log('Table created successfully:', data);
+        }
+    } catch (error) {
+        console.error('Error creating dynamic table:', error);
+    }
+  }
+  
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>

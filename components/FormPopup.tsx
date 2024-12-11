@@ -105,16 +105,25 @@ export default function FormPopup({ open, onClose, app }: FormPopupProps) {
     logo: ''
   })
 
+  const handleLogoChange = (file: File) => {
+    // Create a URL for the uploaded logo file
+    const logoUrl = URL.createObjectURL(file);
+    setFormData((prev) => ({ ...prev, logo: logoUrl })); // Update formData with the logo URL
+    console.log('Logo file selected:', file);
+  }
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = event.target
-    if (type === 'checkbox') {
-      const updatedArray = checked
-        ? [...formData[name as keyof typeof formData] as string[], value]
-        : (formData[name as keyof typeof formData] as string[]).filter((item) => item !== value)
-      setFormData((prev) => ({ ...prev, [name]: updatedArray }))
+    const { name, value, type, checked, files } = event.target;
+    if (type === 'file' && files) {
+        const file = files[0];
+        handleLogoChange(file); // Call the new function to handle logo upload
+    } else if (type === 'checkbox') {
+        const updatedArray = checked
+            ? [...formData[name as keyof typeof formData] as string[], value]
+            : (formData[name as keyof typeof formData] as string[]).filter((item) => item !== value);
+        setFormData((prev) => ({ ...prev, [name]: updatedArray }));
     } else {
-      setFormData((prev) => ({ ...prev, [name]: value }))
+        setFormData((prev) => ({ ...prev, [name]: value }));
     }
   }
 
@@ -132,7 +141,7 @@ export default function FormPopup({ open, onClose, app }: FormPopupProps) {
       localStorage.setItem('currentApp', JSON.stringify(formData));
     } else {
       // If creating a new app, add it to the Supabase table
-      const { data , error } = await supabase
+      const { error } = await supabase
         .from('apps')
         .insert([{ 
           app_name: formData.appName,

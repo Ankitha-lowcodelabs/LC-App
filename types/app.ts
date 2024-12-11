@@ -7,6 +7,7 @@ export interface Record {
 }
 
 export interface AppData {
+  id: string;
   appName: string
   appCode: string
   appType: string

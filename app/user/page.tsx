@@ -115,10 +115,8 @@ export default function UserPage() {
         onOpenChange={setIsDialogOpen}
         records={records[selectedApp?.appCode || '']?.map(record => ({
           id: record.id as number,
-          name: (formData[record.id as string]?.name as string) || record.name,
-        })) || []}
-        onInputChange={handleInputChange}
-        onSubmit={handleSubmit}
+          name: (formData[record.id as string]?.name as string) || record.name, // Ensure name is a string
+        })) || []} // Pass records for the selected app
       />
     </div>
   )

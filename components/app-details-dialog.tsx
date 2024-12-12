@@ -56,7 +56,7 @@ export function AppDetailsDialog<T extends RecordData>({ app, open, onOpenChange
 
   const fetchRecords = async (appCode: string) => {
     // Implement the logic to fetch records from the database
-    const {  error } = await supabase
+    const { data, error } = await supabase
       .from(`app_${appCode}`)
       .select('*');
 

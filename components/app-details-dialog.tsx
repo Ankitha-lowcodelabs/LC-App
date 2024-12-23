@@ -1,74 +1,78 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { AppData } from "../types/app"
-import Image from "next/image"
-import {supabase} from "@/lib/supabaseClient"
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AppData } from "../types/app";
+import Image from "next/image";
+import { supabase } from "@/lib/supabaseClient";
 
 interface RecordData {
-  // Define the properties of your record here
-  // For example:
   id: number;
   name: string;
-  // Add other fields as necessary
+  [key: string]: string | number; // Allow dynamic fields
 }
 
 interface AppDetailsDialogProps<T extends RecordData> {
-  app: AppData | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  records: T[]
+  app: AppData | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  records: T[];
 }
 
-export function AppDetailsDialog<T extends RecordData>({ app, open, onOpenChange, records }: AppDetailsDialogProps<T>) {
-  const [formData, setFormData] = useState<{ [key: string]: string }>({});
+export function AppDetailsDialog<T extends RecordData>({ app, open, onOpenChange, records: initialRecords }: AppDetailsDialogProps<T>) {
+  const [records, setRecords] = useState<T[]>(initialRecords || []);
 
-  const handleInputChange = (key: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
+  const handleInputChange = (index: number, key: string, value: string) => {
+    setRecords((prev) => {
+      const updatedRecords = [...prev];
+      updatedRecords[index] = { ...updatedRecords[index], [key]: value } as T;
+      return updatedRecords;
+    });
+  };
+
+  const handleAddRow = () => {
+    const newRow = {} as T;
+    setRecords((prev) => [...prev, newRow]);
   };
 
   const handleSubmit = async () => {
     if (!app) return; // Ensure app is defined
+
     const { error } = await supabase
       .from(`app_${app.appCode}`)
-      .insert([formData]); // Insert the new record
+      .upsert(records); // Insert or update records
 
     if (error) {
-      console.error('Error inserting record:', error);
+      console.error('Error inserting/updating records:', error);
     } else {
       onOpenChange(false); // Close the dialog after submission
-      fetchRecords(app.appCode); // Refresh records after submission
     }
   };
 
-  // Fetch records when the dialog opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (open && app) {
       fetchRecords(app.appCode); // Fetch records for the selected app
     }
   }, [open, app]);
 
   const fetchRecords = async (appCode: string) => {
-    // Implement the logic to fetch records from the database
-    const {  error } = await supabase
+    const { data, error } = await supabase
       .from(`app_${appCode}`)
       .select('*');
 
     if (error) {
       console.error('Error fetching records:', error);
-    } else {
-      // Handle the fetched data (e.g., update state)
-      // setRecords(data); // Uncomment and implement state management if needed
+    } else if (data) {
+      setRecords(data as T[]);
     }
   };
 
-  if (!app) return null
+  if (!app) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -98,33 +102,35 @@ export function AppDetailsDialog<T extends RecordData>({ app, open, onOpenChange
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {records.length > 0 && Object.keys(records[0]).map((key) => (
+                    {records && records.length > 0 && Object.keys(records[0]).map((key) => (
                       <TableHead key={key}>{key}</TableHead>
                     ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <TableRow>
-                    {records.length > 0 && Object.keys(records[0]).map((key) => (
-                      <TableCell key={key}>
-                        <input
-                          type="text"
-                          value={formData[key] || ''}
-                          onChange={(e) => handleInputChange(key, e.target.value)}
-                          className="border border-gray-300 p-1"
-                          placeholder={`Enter ${key}`}
-                        />
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                  {records && records.length > 0 && records.map((record, index) => (
+                    <TableRow key={index}>
+                      {Object.keys(record).map((key) => (
+                        <TableCell key={key}>
+                          <input
+                            type="text"
+                            value={record[key] || ''}
+                            onChange={(e) => handleInputChange(index, key, e.target.value)}
+                            className="border border-gray-300 p-1"
+                            placeholder={`Enter ${key}`}
+                          />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>
+            <Button className="w-full mt-2" onClick={handleAddRow}>Add Row</Button>
             <Button className="w-full mt-2" onClick={handleSubmit}>Save Changes</Button>
           </div>
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
-

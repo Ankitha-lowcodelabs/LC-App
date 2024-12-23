@@ -18,4 +18,3 @@ export interface AppData {
   records: Record[]
   logo?: string
 }
-

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { supabase } from '../lib/supabaseClient'
+import {supabase} from "@/components/lib/supabaseClient"
 import { mapFieldTypeToSQL } from '../utils/sqlTypeMapper'
 
 export default function AppCreator() {
@@ -148,4 +148,3 @@ export default function AppCreator() {
     </div>
   )
 }
-

@@ -21,10 +21,15 @@ interface AppDetailsDialogProps<T extends RecordData> {
   app: AppData | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  records: T[];
+  records: T[]; // Add the records prop here
 }
 
-export function AppDetailsDialog<T extends RecordData>({ app, open, onOpenChange, records: initialRecords }: AppDetailsDialogProps<T>) {
+export function AppDetailsDialog<T extends RecordData>({
+  app,
+  open,
+  onOpenChange,
+  records: initialRecords,
+}: AppDetailsDialogProps<T>) {
   const [records, setRecords] = useState<T[]>(initialRecords || []);
 
   const handleInputChange = (index: number, key: string, value: string) => {
@@ -36,7 +41,7 @@ export function AppDetailsDialog<T extends RecordData>({ app, open, onOpenChange
   };
 
   const handleAddRow = () => {
-    const newRow = {} as T;
+    const newRow = { id: 0 } as T; // Initialize with basic fields
     setRecords((prev) => [...prev, newRow]);
   };
 

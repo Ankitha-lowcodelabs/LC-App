@@ -4,12 +4,15 @@ import { useState, useEffect } from "react"
 import { AppCard } from "@/components/app-card"
 import { AppDetailsDialog } from "@/components/app-details-dialog"
 import { AppData } from "@/types/app"
+import { supabase } from "@/lib/supabaseClient" // Assuming you fetch records from Supabase
 
 export default function UserPage() {
   const [apps, setApps] = useState<AppData[]>([])
   const [selectedApp, setSelectedApp] = useState<AppData | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [records, setRecords] = useState<{ [key: string]: any[] }>({}) // This stores records per app
 
+  // Load apps and records on component mount
   useEffect(() => {
     // Load apps from localStorage
     const savedApps = localStorage.getItem("existingApps")
@@ -17,6 +20,28 @@ export default function UserPage() {
       setApps(JSON.parse(savedApps))
     }
   }, [])
+
+  // Fetch records for a specific app when selected
+  useEffect(() => {
+    if (selectedApp) {
+      const fetchRecords = async (appCode: string) => {
+        const { data, error } = await supabase
+          .from(`app_${appCode}`)
+          .select("*")
+
+        if (error) {
+          console.error(`Error fetching records for app ${appCode}:`, error)
+        } else if (data) {
+          setRecords((prevRecords) => ({
+            ...prevRecords,
+            [appCode]: data, // Store records for the selected app
+          }))
+        }
+      }
+
+      fetchRecords(selectedApp.appCode)
+    }
+  }, [selectedApp])
 
   return (
     <div className="container py-10">
@@ -33,12 +58,15 @@ export default function UserPage() {
           />
         ))}
       </div>
-      <AppDetailsDialog
-        app={selectedApp}
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-      />
+
+      {selectedApp && (
+        <AppDetailsDialog
+          app={selectedApp}
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          records={records[selectedApp.appCode] || []} // Ensure records for selected app are passed
+        />
+      )}
     </div>
   )
 }
-

@@ -1,22 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { supabase } from "@/components/lib/supabaseClient";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@mui/material";
-import UpdateRecordForm from "./UpdateRecordForm";
-
-interface AppData {
-  id: number;
-  appCode: string;
-  appName: string;
-  appdescription: string;
-}
 
 interface RecordData {
   id: number;
@@ -26,107 +9,113 @@ interface RecordData {
   eid: string;
 }
 
-export default function UserPage() {
-  const [apps, setApps] = useState<AppData[]>([]);
-  const [records, setRecords] = useState<{ [key: string]: RecordData[] }>({});
-  const [editingRecord, setEditingRecord] = useState<RecordData | null>(null);
-  const [activeAppCode, setActiveAppCode] = useState<string>("");
+interface UpdateRecordFormProps {
+  appCode: string;
+  record: RecordData;
+  onUpdate: () => void;
+}
 
-  // Fetch all apps
-  const fetchApps = async () => {
-    const { data, error } = await supabase.from("apps").select("*");
-    if (error) {
-      console.error("Error fetching apps:", error);
-    } else {
-      setApps(data || []);
-    }
+const UpdateRecordForm: React.FC<UpdateRecordFormProps> = ({
+  appCode,
+  record,
+  onUpdate,
+}) => {
+  const [formData, setFormData] = useState<RecordData>(record);
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
   };
 
-  // Fetch records for a specific app
-  const fetchRecords = async (appCode: string) => {
-    const { data, error } = await supabase.from(`app_${appCode}`).select("*");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const { error } = await supabase
+      .from(`app_${appCode}`)
+      .update({
+        name: formData.name,
+        type: formData.type,
+        length: formData.length,
+        eid: formData.eid,
+      })
+      .eq("id", formData.id);
+
+    setLoading(false);
+
     if (error) {
-      console.error(`Error fetching records for app ${appCode}:`, error);
+      console.error("Error updating record:", error);
     } else {
-      setRecords((prev) => ({ ...prev, [appCode]: data || [] }));
+      onUpdate(); // Notify parent component about the update
     }
-  };
-
-  // Fetch apps and their records
-  useEffect(() => {
-    fetchApps();
-  }, []);
-
-  useEffect(() => {
-    apps.forEach((app) => fetchRecords(app.appCode));
-  }, [apps]);
-
-  // Handle record update
-  const handleUpdate = () => {
-    if (activeAppCode) fetchRecords(activeAppCode);
-    setEditingRecord(null);
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">App Records</h1>
-      <div className="grid gap-6">
-        {apps.map((app) => (
-          <div key={app.id} className="border rounded-lg p-4">
-            <h2 className="text-xl font-semibold mb-2">{app.appName}</h2>
-            <p className="text-gray-600 mb-4">{app.appdescription}</p>
-            <div className="overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Length</TableHead>
-                    <TableHead>EID</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {records[app.appCode]?.map((record) => (
-                    <TableRow key={record.id}>
-                      <TableCell>{record.id}</TableCell>
-                      <TableCell>{record.name}</TableCell>
-                      <TableCell>{record.type}</TableCell>
-                      <TableCell>{record.length}</TableCell>
-                      <TableCell>{record.eid}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="contained"
-                          color="secondary"
-                          onClick={() => {
-                            setEditingRecord(record);
-                            setActiveAppCode(app.appCode);
-                          }}
-                        >
-                          Edit
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        ))}
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block font-medium">Name</label>
+        <input
+          type="text"
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+          className="border rounded w-full px-3 py-2"
+          required
+        />
       </div>
-      {editingRecord && activeAppCode && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-          <div className="bg-white p-4 rounded-lg shadow-lg">
-            <h3 className="text-lg font-bold mb-4">Edit Record</h3>
-            <UpdateRecordForm
-              appCode={activeAppCode}
-              record={editingRecord}
-              onUpdate={handleUpdate}
-            />
-          </div>
-        </div>
-      )}
-    </div>
+      <div>
+        <label className="block font-medium">Type</label>
+        <input
+          type="text"
+          name="type"
+          value={formData.type}
+          onChange={handleChange}
+          className="border rounded w-full px-3 py-2"
+          required
+        />
+      </div>
+      <div>
+        <label className="block font-medium">Length</label>
+        <input
+          type="number"
+          name="length"
+          value={formData.length}
+          onChange={handleChange}
+          className="border rounded w-full px-3 py-2"
+          required
+        />
+      </div>
+      <div>
+        <label className="block font-medium">EID</label>
+        <input
+          type="text"
+          name="eid"
+          value={formData.eid}
+          onChange={handleChange}
+          className="border rounded w-full px-3 py-2"
+          required
+        />
+      </div>
+      <div className="flex justify-end space-x-2">
+        <button
+          type="button"
+          onClick={onUpdate}
+          className="bg-gray-300 text-gray-700 px-4 py-2 rounded"
+          disabled={loading}
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+          disabled={loading}
+        >
+          {loading ? "Updating..." : "Update"}
+        </button>
+      </div>
+    </form>
   );
-}
+};
+
+export default UpdateRecordForm;
